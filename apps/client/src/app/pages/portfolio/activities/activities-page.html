@@ -2,6 +2,49 @@
   <div class="mb-3 row">
     <div class="col">
       <h1 class="d-none d-sm-block h3 mb-3 text-center" i18n>Activities</h1>
+      <div class="mb-3 row">
+        <div class="col-12 col-lg-5">
+          <mat-form-field appearance="outline" class="w-100 without-hint">
+            <mat-label i18n>Name, symbol or ISIN</mat-label>
+            <gf-symbol-autocomplete [formControl]="symbolFilter" />
+            @if (symbolFilter.value) {
+              <button
+                class="mx-2"
+                mat-icon-button
+                matSuffix
+                type="button"
+                (click)="$event.stopPropagation(); onClearSymbolFilter()"
+              >
+                <ion-icon class="mat-icon" name="close-outline" />
+              </button>
+            }
+          </mat-form-field>
+        </div>
+        <div class="col-12 col-lg-3">
+          <mat-form-field appearance="outline" class="w-100 without-hint">
+            <mat-label i18n>Type</mat-label>
+            <mat-select [formControl]="typeFilter">
+              <mat-option [value]="null" />
+              @for (activityType of typeFilterOptions; track activityType) {
+                <mat-option [value]="activityType">
+                  {{ activityTypesTranslationMap.get(activityType) }}
+                </mat-option>
+              }
+            </mat-select>
+            @if (typeFilter.value) {
+              <button
+                class="mx-2"
+                mat-icon-button
+                matSuffix
+                type="button"
+                (click)="$event.stopPropagation(); onClearTypeFilter()"
+              >
+                <ion-icon class="mat-icon" name="close-outline" />
+              </button>
+            }
+          </mat-form-field>
+        </div>
+      </div>
       <gf-activities-table
         [baseCurrency]="user?.settings?.baseCurrency"
         [dataSource]="dataSource"
@@ -10,7 +53,7 @@
         [hasPermissionToCreateActivity]="hasPermissionToCreateActivity"
         [hasPermissionToDeleteActivity]="hasPermissionToDeleteActivity"
         [hasPermissionToExportActivities]="!hasImpersonationId"
-        [hasPermissionToFilterByType]="user?.settings?.isExperimentalFeatures"
+        [hasPermissionToFilterByType]="false"
         [locale]="user?.settings?.locale"
         [pageIndex]="pageIndex"
         [pageSize]="pageSize"
@@ -33,7 +76,6 @@
         (importDividends)="onImportDividends()"
         (pageChanged)="onChangePage($event)"
         (sortChanged)="onSortChanged($event)"
-        (typesFilterChanged)="onTypesFilterChanged($event)"
       />
     </div>
   </div>

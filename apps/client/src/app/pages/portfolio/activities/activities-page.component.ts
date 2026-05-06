@@ -7,12 +7,16 @@ import { downloadAsFile } from '@ghostfolio/common/helper';
 import {
   Activity,
   AssetProfileIdentifier,
+  Filter,
+  LookupItem,
   User
 } from '@ghostfolio/common/interfaces';
 import { hasPermission, permissions } from '@ghostfolio/common/permissions';
 import { DateRange } from '@ghostfolio/common/types';
 import { GfActivitiesTableComponent } from '@ghostfolio/ui/activities-table';
+import { translate } from '@ghostfolio/ui/i18n';
 import { DataService } from '@ghostfolio/ui/services';
+import { GfSymbolAutocompleteComponent } from '@ghostfolio/ui/symbol-autocomplete';
 
 import {
   ChangeDetectorRef,
@@ -21,17 +25,21 @@ import {
   OnInit
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { PageEvent } from '@angular/material/paginator';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { Sort, SortDirection } from '@angular/material/sort';
 import { MatTableDataSource } from '@angular/material/table';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { IonIcon } from '@ionic/angular/standalone';
+import { Type as ActivityType } from '@prisma/client';
 import { format, parseISO } from 'date-fns';
 import { addIcons } from 'ionicons';
-import { addOutline } from 'ionicons/icons';
+import { addOutline, closeOutline } from 'ionicons/icons';
 import { DeviceDetectorService } from 'ngx-device-detector';
 import { Subscription } from 'rxjs';
 
@@ -44,9 +52,13 @@ import { ImportActivitiesDialogParams } from './import-activities-dialog/interfa
   host: { class: 'has-fab' },
   imports: [
     GfActivitiesTableComponent,
+    GfSymbolAutocompleteComponent,
     IonIcon,
     MatButtonModule,
+    MatFormFieldModule,
+    MatSelectModule,
     MatSnackBarModule,
+    ReactiveFormsModule,
     RouterModule
   ],
   selector: 'gf-activities-page',
@@ -54,7 +66,15 @@ import { ImportActivitiesDialogParams } from './import-activities-dialog/interfa
   templateUrl: './activities-page.html'
 })
 export class GfActivitiesPageComponent implements OnInit {
-  public activityTypesFilter: string[] = [];
+  public readonly activityTypesTranslationMap = new Map<ActivityType, string>();
+  public readonly symbolFilter = new FormControl<LookupItem | null>(null);
+  public readonly typeFilter = new FormControl<ActivityType | null>(null);
+  public readonly typeFilterOptions: ActivityType[] = [
+    'BUY',
+    'SELL',
+    'DIVIDEND'
+  ];
+
   public dataSource: MatTableDataSource<Activity>;
   public deviceType: string;
   public hasImpersonationId: boolean;
@@ -66,6 +86,7 @@ export class GfActivitiesPageComponent implements OnInit {
   public sortColumn = 'date';
   public sortDirection: SortDirection = 'desc';
   public totalItems: number | undefined;
+  public typeFilterValue: ActivityType | null = null;
   public user: User;
 
   public constructor(
@@ -108,11 +129,36 @@ export class GfActivitiesPageComponent implements OnInit {
         }
       });
 
-    addIcons({ addOutline });
+    for (const type of this.typeFilterOptions) {
+      this.activityTypesTranslationMap.set(type, translate(type));
+    }
+
+    addIcons({ addOutline, closeOutline });
   }
 
   public ngOnInit() {
     this.deviceType = this.deviceDetectorService.getDeviceInfo().deviceType;
+
+    this.symbolFilter.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((value) => {
+        if (value && (!value.dataSource || !value.symbol)) {
+          return;
+        }
+
+        this.pageIndex = 0;
+
+        this.fetchActivities();
+      });
+
+    this.typeFilter.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((value) => {
+        this.typeFilterValue = value;
+        this.pageIndex = 0;
+
+        this.fetchActivities();
+      });
 
     this.impersonationStorageService
       .onChangeHasImpersonation()
@@ -145,10 +191,10 @@ export class GfActivitiesPageComponent implements OnInit {
     this.dataService
       .fetchActivities({
         range,
-        activityTypes: this.activityTypesFilter.length
-          ? this.activityTypesFilter
+        activityTypes: this.typeFilterValue
+          ? [this.typeFilterValue]
           : undefined,
-        filters: this.userService.getFilters(),
+        filters: this.getActivityFilters(),
         skip: this.pageIndex * this.pageSize,
         sortColumn: this.sortColumn,
         sortDirection: this.sortDirection,
@@ -193,7 +239,7 @@ export class GfActivitiesPageComponent implements OnInit {
   public onDeleteActivities() {
     this.dataService
       .deleteActivities({
-        filters: this.userService.getFilters()
+        filters: this.getActivityFilters()
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
@@ -229,10 +275,10 @@ export class GfActivitiesPageComponent implements OnInit {
 
     if (!activityIds) {
       fetchExportParams = {
-        activityTypes: this.activityTypesFilter.length
-          ? this.activityTypesFilter
+        activityTypes: this.typeFilterValue
+          ? [this.typeFilterValue]
           : undefined,
-        filters: this.userService.getFilters()
+        filters: this.getActivityFilters()
       };
     }
 
@@ -338,11 +384,12 @@ export class GfActivitiesPageComponent implements OnInit {
     this.fetchActivities();
   }
 
-  public onTypesFilterChanged(aTypes: string[]) {
-    this.activityTypesFilter = aTypes;
-    this.pageIndex = 0;
+  public onClearSymbolFilter() {
+    this.symbolFilter.setValue(null);
+  }
 
-    this.fetchActivities();
+  public onClearTypeFilter() {
+    this.typeFilter.setValue(null);
   }
 
   public onUpdateActivity(aActivity: Activity) {
@@ -392,6 +439,29 @@ export class GfActivitiesPageComponent implements OnInit {
     }
 
     return /^\d{4}$/.test(dateRange);
+  }
+
+  private getActivityFilters(): Filter[] {
+    const symbolFilter = this.symbolFilter.value;
+    const filters = this.userService.getFilters().filter(({ type }) => {
+      return (
+        type !== 'SYMBOL' &&
+        (!symbolFilter?.dataSource || type !== 'DATA_SOURCE')
+      );
+    });
+
+    if (symbolFilter?.dataSource && symbolFilter.symbol) {
+      filters.push({
+        id: symbolFilter.dataSource,
+        type: 'DATA_SOURCE'
+      });
+      filters.push({
+        id: symbolFilter.symbol,
+        type: 'SYMBOL'
+      });
+    }
+
+    return filters;
   }
 
   private openCreateActivityDialog(aActivity?: Activity) {
