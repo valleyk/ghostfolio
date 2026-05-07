@@ -6,8 +6,48 @@
         <div class="col-12 col-lg-5">
           <mat-form-field appearance="outline" class="w-100 without-hint">
             <mat-label i18n>Name, symbol or ISIN</mat-label>
-            <gf-symbol-autocomplete [formControl]="symbolFilter" />
-            @if (symbolFilter.value) {
+            <input
+              matInput
+              [formControl]="symbolSearchControl"
+              [matAutocomplete]="holdingFilterAutocomplete"
+              (click)="onOpenHoldingFilter()"
+              (focus)="onOpenHoldingFilter()"
+            />
+            <mat-autocomplete #holdingFilterAutocomplete="matAutocomplete">
+              @for (holding of filteredHoldings; track holding.symbol) {
+                <mat-option
+                  [value]="holding.symbol"
+                  (onSelectionChange)="
+                    $event.isUserInput && onSelectHoldingFilter(holding)
+                  "
+                >
+                  <div class="line-height-1 text-truncate">
+                    <span
+                      ><b>{{ holding.name }}</b></span
+                    >
+                    <br />
+                    <small class="text-muted"
+                      >{{ holding.symbol }} · {{ holding.currency }}
+                      @if (holding.assetSubClassLabel) {
+                        · {{ holding.assetSubClassLabel }}
+                      }
+                    </small>
+                  </div>
+                </mat-option>
+              } @empty {
+                @if (
+                  symbolSearchControl.value.length > 1 && !isLoadingHoldings
+                ) {
+                  <mat-option disabled="true" i18n>
+                    Oops! Could not find any holdings.
+                  </mat-option>
+                }
+              }
+            </mat-autocomplete>
+            @if (isLoadingHoldings) {
+              <mat-spinner class="mx-2" matSuffix [diameter]="20" />
+            }
+            @if (symbolSearchControl.value) {
               <button
                 class="mx-2"
                 mat-icon-button

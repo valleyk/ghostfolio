@@ -8,7 +8,7 @@ import {
   Activity,
   AssetProfileIdentifier,
   Filter,
-  LookupItem,
+  PortfolioPosition,
   User
 } from '@ghostfolio/common/interfaces';
 import { hasPermission, permissions } from '@ghostfolio/common/permissions';
@@ -16,20 +16,26 @@ import { DateRange } from '@ghostfolio/common/types';
 import { GfActivitiesTableComponent } from '@ghostfolio/ui/activities-table';
 import { translate } from '@ghostfolio/ui/i18n';
 import { DataService } from '@ghostfolio/ui/services';
-import { GfSymbolAutocompleteComponent } from '@ghostfolio/ui/symbol-autocomplete';
 
 import {
   ChangeDetectorRef,
   Component,
   DestroyRef,
-  OnInit
+  OnInit,
+  ViewChild
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import {
+  MatAutocompleteModule,
+  MatAutocompleteTrigger
+} from '@angular/material/autocomplete';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { PageEvent } from '@angular/material/paginator';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { Sort, SortDirection } from '@angular/material/sort';
@@ -41,21 +47,37 @@ import { format, parseISO } from 'date-fns';
 import { addIcons } from 'ionicons';
 import { addOutline, closeOutline } from 'ionicons/icons';
 import { DeviceDetectorService } from 'ngx-device-detector';
+import { of } from 'rxjs';
 import { Subscription } from 'rxjs';
+import {
+  catchError,
+  debounceTime,
+  distinctUntilChanged,
+  map,
+  switchMap
+} from 'rxjs/operators';
 
 import { GfCreateOrUpdateActivityDialogComponent } from './create-or-update-activity-dialog/create-or-update-activity-dialog.component';
 import { CreateOrUpdateActivityDialogParams } from './create-or-update-activity-dialog/interfaces/interfaces';
 import { GfImportActivitiesDialogComponent } from './import-activities-dialog/import-activities-dialog.component';
 import { ImportActivitiesDialogParams } from './import-activities-dialog/interfaces/interfaces';
 
+interface HoldingFilterOption extends AssetProfileIdentifier {
+  assetSubClassLabel?: string;
+  currency: string;
+  name: string;
+}
+
 @Component({
   host: { class: 'has-fab' },
   imports: [
     GfActivitiesTableComponent,
-    GfSymbolAutocompleteComponent,
     IonIcon,
+    MatAutocompleteModule,
     MatButtonModule,
     MatFormFieldModule,
+    MatInputModule,
+    MatProgressSpinnerModule,
     MatSelectModule,
     MatSnackBarModule,
     ReactiveFormsModule,
@@ -66,8 +88,13 @@ import { ImportActivitiesDialogParams } from './import-activities-dialog/interfa
   templateUrl: './activities-page.html'
 })
 export class GfActivitiesPageComponent implements OnInit {
+  @ViewChild(MatAutocompleteTrigger)
+  public holdingFilterAutocompleteTrigger?: MatAutocompleteTrigger;
+
   public readonly activityTypesTranslationMap = new Map<ActivityType, string>();
-  public readonly symbolFilter = new FormControl<LookupItem | null>(null);
+  public readonly symbolSearchControl = new FormControl('', {
+    nonNullable: true
+  });
   public readonly typeFilter = new FormControl<ActivityType | null>(null);
   public readonly typeFilterOptions: ActivityType[] = [
     'BUY',
@@ -76,13 +103,18 @@ export class GfActivitiesPageComponent implements OnInit {
   ];
 
   public dataSource: MatTableDataSource<Activity>;
+  public defaultHoldings: HoldingFilterOption[] = [];
   public deviceType: string;
+  public filteredHoldings: HoldingFilterOption[] = [];
   public hasImpersonationId: boolean;
   public hasPermissionToCreateActivity: boolean;
   public hasPermissionToDeleteActivity: boolean;
+  public isLoadingHoldings = false;
   public pageIndex = 0;
   public pageSize = DEFAULT_PAGE_SIZE;
   public routeQueryParams: Subscription;
+  public selectedHoldingFilter: HoldingFilterOption | null = null;
+  public shouldOpenHoldingFilterPanel = false;
   public sortColumn = 'date';
   public sortDirection: SortDirection = 'desc';
   public totalItems: number | undefined;
@@ -139,16 +171,57 @@ export class GfActivitiesPageComponent implements OnInit {
   public ngOnInit() {
     this.deviceType = this.deviceDetectorService.getDeviceInfo().deviceType;
 
-    this.symbolFilter.valueChanges
+    this.symbolSearchControl.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((value) => {
-        if (value && (!value.dataSource || !value.symbol)) {
-          return;
+        if (
+          this.selectedHoldingFilter &&
+          value !== this.selectedHoldingFilter.symbol
+        ) {
+          this.selectedHoldingFilter = null;
+          this.pageIndex = 0;
+
+          this.fetchActivities();
         }
+      });
 
-        this.pageIndex = 0;
+    this.symbolSearchControl.valueChanges
+      .pipe(
+        debounceTime(250),
+        distinctUntilChanged(),
+        switchMap((value) => {
+          const query = value.trim();
 
-        this.fetchActivities();
+          if (!query) {
+            if (this.defaultHoldings.length > 0) {
+              return of(this.defaultHoldings);
+            }
+
+            return this.fetchHoldingFilterOptions();
+          }
+
+          if (this.selectedHoldingFilter?.symbol === query) {
+            return of<HoldingFilterOption[]>([]);
+          }
+
+          return this.fetchHoldingFilterOptions(query);
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((holdings) => {
+        this.filteredHoldings = holdings;
+        if (!this.symbolSearchControl.value.trim()) {
+          this.defaultHoldings = holdings;
+        }
+        this.isLoadingHoldings = false;
+        this.changeDetectorRef.markForCheck();
+
+        if (
+          this.shouldOpenHoldingFilterPanel &&
+          this.filteredHoldings.length > 0
+        ) {
+          this.openHoldingFilterPanel();
+        }
       });
 
     this.typeFilter.valueChanges
@@ -385,11 +458,65 @@ export class GfActivitiesPageComponent implements OnInit {
   }
 
   public onClearSymbolFilter() {
-    this.symbolFilter.setValue(null);
+    this.selectedHoldingFilter = null;
+    this.filteredHoldings = [];
+    this.symbolSearchControl.setValue('');
+    this.pageIndex = 0;
+
+    this.fetchActivities();
   }
 
   public onClearTypeFilter() {
     this.typeFilter.setValue(null);
+  }
+
+  public onOpenHoldingFilter() {
+    this.shouldOpenHoldingFilterPanel = true;
+
+    if (this.filteredHoldings.length > 0) {
+      this.openHoldingFilterPanel();
+      return;
+    }
+
+    if (this.isLoadingHoldings) {
+      return;
+    }
+
+    if (!this.symbolSearchControl.value.trim()) {
+      if (this.defaultHoldings.length > 0) {
+        this.filteredHoldings = this.defaultHoldings;
+        this.changeDetectorRef.markForCheck();
+        this.openHoldingFilterPanel();
+      } else {
+        this.isLoadingHoldings = true;
+
+        this.fetchHoldingFilterOptions()
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe((holdings) => {
+            this.defaultHoldings = holdings;
+            this.filteredHoldings = holdings;
+            this.isLoadingHoldings = false;
+            this.changeDetectorRef.markForCheck();
+
+            if (this.shouldOpenHoldingFilterPanel && holdings.length > 0) {
+              this.openHoldingFilterPanel();
+            }
+          });
+      }
+    } else {
+      this.openHoldingFilterPanel();
+    }
+  }
+
+  public onSelectHoldingFilter(holding: HoldingFilterOption) {
+    this.selectedHoldingFilter = holding;
+    this.filteredHoldings = [];
+    this.shouldOpenHoldingFilterPanel = false;
+    this.symbolSearchControl.setValue(holding.symbol, { emitEvent: false });
+    this.holdingFilterAutocompleteTrigger?.closePanel();
+    this.pageIndex = 0;
+
+    this.fetchActivities();
   }
 
   public onUpdateActivity(aActivity: Activity) {
@@ -442,26 +569,75 @@ export class GfActivitiesPageComponent implements OnInit {
   }
 
   private getActivityFilters(): Filter[] {
-    const symbolFilter = this.symbolFilter.value;
     const filters = this.userService.getFilters().filter(({ type }) => {
       return (
         type !== 'SYMBOL' &&
-        (!symbolFilter?.dataSource || type !== 'DATA_SOURCE')
+        (!this.selectedHoldingFilter?.dataSource || type !== 'DATA_SOURCE')
       );
     });
 
-    if (symbolFilter?.dataSource && symbolFilter.symbol) {
+    if (
+      this.selectedHoldingFilter?.dataSource &&
+      this.selectedHoldingFilter.symbol
+    ) {
       filters.push({
-        id: symbolFilter.dataSource,
+        id: this.selectedHoldingFilter.dataSource,
         type: 'DATA_SOURCE'
       });
       filters.push({
-        id: symbolFilter.symbol,
+        id: this.selectedHoldingFilter.symbol,
         type: 'SYMBOL'
       });
     }
 
     return filters;
+  }
+
+  private fetchHoldingFilterOptions(query?: string) {
+    this.isLoadingHoldings = true;
+
+    const filters: Filter[] = [
+      ...this.userService.getFilters().filter(({ type }) => {
+        return type !== 'SYMBOL' && type !== 'DATA_SOURCE';
+      })
+    ];
+
+    if (query) {
+      filters.push({
+        id: query,
+        type: 'SEARCH_QUERY'
+      });
+    }
+
+    return this.dataService.fetchPortfolioHoldings({ filters }).pipe(
+      map(({ holdings }) => {
+        return holdings.map((holding) => {
+          return this.mapHoldingToFilterOption(holding);
+        });
+      }),
+      catchError(() => {
+        return of<HoldingFilterOption[]>([]);
+      })
+    );
+  }
+
+  private mapHoldingToFilterOption(
+    holding: PortfolioPosition
+  ): HoldingFilterOption {
+    return {
+      assetSubClassLabel:
+        holding.assetProfile.assetSubClassLabel ?? holding.assetSubClassLabel,
+      currency: holding.assetProfile.currency ?? holding.currency,
+      dataSource: holding.assetProfile.dataSource ?? holding.dataSource,
+      name: holding.assetProfile.name ?? holding.name,
+      symbol: holding.assetProfile.symbol ?? holding.symbol
+    };
+  }
+
+  private openHoldingFilterPanel() {
+    setTimeout(() => {
+      this.holdingFilterAutocompleteTrigger?.openPanel();
+    });
   }
 
   private openCreateActivityDialog(aActivity?: Activity) {
