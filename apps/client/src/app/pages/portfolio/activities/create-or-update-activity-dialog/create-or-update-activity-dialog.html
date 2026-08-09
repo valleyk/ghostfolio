@@ -76,26 +76,40 @@
         </mat-select>
       </mat-form-field>
     </div>
-    <div [ngClass]="{ 'mb-3': mode === 'update' }">
+    <div [class.mb-3]="mode === 'update'">
       <mat-form-field
         appearance="outline"
         class="w-100"
-        [ngClass]="{ 'mb-1 without-hint': mode === 'create' }"
+        [class.mb-1]="mode === 'create'"
+        [class.without-hint]="mode === 'create'"
       >
         <mat-label i18n>Account</mat-label>
         <mat-select formControlName="accountId">
+          <mat-select-trigger>
+            <div class="d-flex">
+              @if (selectedAccount) {
+                <gf-entity-logo
+                  class="mr-1"
+                  [hasPlaceholder]="true"
+                  [tooltip]="selectedAccount?.platform?.name"
+                  [url]="selectedAccount?.platform?.url"
+                />
+              }
+              <span>{{ selectedAccount?.name }}</span>
+            </div>
+          </mat-select-trigger>
+
           <mat-option [value]="null" />
 
           @for (account of data.accounts; track account) {
             <mat-option [value]="account.id">
               <div class="d-flex">
-                @if (account.platform?.url) {
-                  <gf-entity-logo
-                    class="mr-1"
-                    [tooltip]="account.platform?.name"
-                    [url]="account.platform?.url"
-                  />
-                }
+                <gf-entity-logo
+                  class="mr-1"
+                  [hasPlaceholder]="true"
+                  [tooltip]="account.platform?.name"
+                  [url]="account.platform?.url"
+                />
                 <span>{{ account.name }}</span>
               </div>
             </mat-option>
@@ -103,18 +117,16 @@
         </mat-select>
       </mat-form-field>
     </div>
-    <div class="mb-3" [ngClass]="{ 'd-none': mode === 'update' }">
+    <div class="mb-3" [class.d-none]="mode === 'update'">
       <mat-checkbox color="primary" formControlName="updateAccountBalance" i18n
         >Update Cash Balance</mat-checkbox
       >
     </div>
     <div
       class="mb-3"
-      [ngClass]="{
-        'd-none': !activityForm
-          .get('searchSymbol')
-          ?.hasValidator(Validators.required)
-      }"
+      [class.d-none]="
+        !activityForm.get('searchSymbol')?.hasValidator(Validators.required)
+      "
     >
       <mat-form-field appearance="outline" class="w-100">
         <mat-label i18n>Name, symbol or ISIN</mat-label>
@@ -127,9 +139,9 @@
     </div>
     <div
       class="mb-3"
-      [ngClass]="{
-        'd-none': !activityForm.get('name')?.hasValidator(Validators.required)
-      }"
+      [class.d-none]="
+        !activityForm.get('name')?.hasValidator(Validators.required)
+      "
     >
       <mat-form-field appearance="outline" class="w-100">
         <mat-label i18n>Name</mat-label>
@@ -168,18 +180,17 @@
             name="calendar-clear-outline"
           />
         </mat-datepicker-toggle>
-        <mat-datepicker #date disabled="false" />
+        <mat-datepicker #date />
       </mat-form-field>
     </div>
     <div
       class="mb-3"
-      [ngClass]="{
-        'd-none':
-          activityForm.get('type')?.value === 'FEE' ||
-          activityForm.get('type')?.value === 'INTEREST' ||
-          activityForm.get('type')?.value === 'ITEM' ||
-          activityForm.get('type')?.value === 'LIABILITY'
-      }"
+      [class.d-none]="
+        activityForm.get('type')?.value === 'FEE' ||
+        activityForm.get('type')?.value === 'INTEREST' ||
+        activityForm.get('type')?.value === 'ITEM' ||
+        activityForm.get('type')?.value === 'LIABILITY'
+      "
     >
       <mat-form-field appearance="outline" class="w-100">
         <mat-label i18n>Quantity</mat-label>
@@ -188,7 +199,7 @@
     </div>
     <div
       class="mb-3"
-      [ngClass]="{ 'd-none': activityForm.get('type')?.value === 'FEE' }"
+      [class.d-none]="activityForm.get('type')?.value === 'FEE'"
     >
       <div class="align-items-start d-flex">
         <mat-form-field appearance="outline" class="w-100">
@@ -215,7 +226,7 @@
           <div
             class="ml-2"
             matTextSuffix
-            [ngClass]="{ 'd-none': !activityForm.get('currency')?.value }"
+            [class.d-none]="!activityForm.get('currency')?.value"
           >
             <mat-select formControlName="currencyOfUnitPrice">
               @for (currency of currencies; track currency) {
@@ -235,6 +246,7 @@
         ) {
           <button
             class="ml-2 mt-1 no-min-width"
+            i18n-title
             mat-button
             title="Apply current market price"
             type="button"
@@ -247,12 +259,11 @@
     </div>
     <div
       class="mb-3"
-      [ngClass]="{
-        'd-none':
-          activityForm.get('type')?.value === 'INTEREST' ||
-          activityForm.get('type')?.value === 'ITEM' ||
-          activityForm.get('type')?.value === 'LIABILITY'
-      }"
+      [class.d-none]="
+        activityForm.get('type')?.value === 'INTEREST' ||
+        activityForm.get('type')?.value === 'ITEM' ||
+        activityForm.get('type')?.value === 'LIABILITY'
+      "
     >
       <mat-form-field appearance="outline" class="w-100">
         <mat-label i18n>Fee</mat-label>
@@ -260,7 +271,7 @@
         <div
           class="ml-2"
           matTextSuffix
-          [ngClass]="{ 'd-none': !activityForm.get('currency')?.value }"
+          [class.d-none]="!activityForm.get('currency')?.value"
         >
           {{ activityForm.get('currencyOfUnitPrice')?.value }}
         </div>
@@ -280,7 +291,7 @@
     </div>
     <div
       class="mb-3"
-      [ngClass]="{ 'd-none': activityForm.get('type')?.value !== 'ITEM' }"
+      [class.d-none]="activityForm.get('type')?.value !== 'ITEM'"
     >
       <mat-form-field appearance="outline" class="w-100">
         <mat-label i18n>Asset Class</mat-label>
@@ -299,7 +310,7 @@
     </div>
     <div
       class="mb-3"
-      [ngClass]="{ 'd-none': activityForm.get('type')?.value !== 'ITEM' }"
+      [class.d-none]="activityForm.get('type')?.value !== 'ITEM'"
     >
       <mat-form-field appearance="outline" class="w-100">
         <mat-label i18n>Asset Sub Class</mat-label>
