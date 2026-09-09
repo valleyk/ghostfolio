@@ -37,7 +37,7 @@ import {
   SymbolMetrics
 } from '@ghostfolio/common/interfaces';
 import { PortfolioSnapshot } from '@ghostfolio/common/models';
-import { GroupBy } from '@ghostfolio/common/types';
+import { FxLedgerMode, GroupBy } from '@ghostfolio/common/types';
 import { PerformanceCalculationType } from '@ghostfolio/common/types/performance-calculation-type.type';
 
 import { Logger } from '@nestjs/common';
@@ -80,6 +80,7 @@ export abstract class PortfolioCalculator {
   private endDate: Date;
   private exchangeRateDataService: ExchangeRateDataService;
   private filters: Filter[];
+  private fxLedgerMode: FxLedgerMode;
   private portfolioSnapshotService: PortfolioSnapshotService;
   private redisCacheService: RedisCacheService;
   private snapshot: PortfolioSnapshot;
@@ -96,6 +97,7 @@ export abstract class PortfolioCalculator {
     currentRateService,
     exchangeRateDataService,
     filters,
+    fxLedgerMode = 'MARKET',
     portfolioSnapshotService,
     redisCacheService,
     userId
@@ -107,6 +109,7 @@ export abstract class PortfolioCalculator {
     currentRateService: CurrentRateService;
     exchangeRateDataService: ExchangeRateDataService;
     filters: Filter[];
+    fxLedgerMode?: FxLedgerMode;
     portfolioSnapshotService: PortfolioSnapshotService;
     redisCacheService: RedisCacheService;
     userId: string;
@@ -117,6 +120,7 @@ export abstract class PortfolioCalculator {
     this.currentRateService = currentRateService;
     this.exchangeRateDataService = exchangeRateDataService;
     this.filters = filters;
+    this.fxLedgerMode = fxLedgerMode;
 
     let dateOfFirstActivity = new Date();
 
@@ -1139,7 +1143,9 @@ export abstract class PortfolioCalculator {
     let isCachedPortfolioSnapshotExpired = false;
     const portfolioSnapshotKey = this.redisCacheService.getPortfolioSnapshotKey(
       {
+        fxLedgerMode: this.fxLedgerMode,
         filters: this.filters,
+        userCurrency: this.currency,
         userId: this.userId
       }
     );
@@ -1179,6 +1185,7 @@ export abstract class PortfolioCalculator {
           data: {
             calculationType: this.getPerformanceCalculationType(),
             filters: this.filters,
+            fxLedgerMode: this.fxLedgerMode,
             userCurrency: this.currency,
             userId: this.userId
           },
@@ -1202,6 +1209,7 @@ export abstract class PortfolioCalculator {
         data: {
           calculationType: this.getPerformanceCalculationType(),
           filters: this.filters,
+          fxLedgerMode: this.fxLedgerMode,
           userCurrency: this.currency,
           userId: this.userId
         },

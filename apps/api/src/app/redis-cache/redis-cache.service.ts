@@ -1,6 +1,7 @@
 import { ConfigurationService } from '@ghostfolio/api/services/configuration/configuration.service';
 import { getAssetProfileIdentifier } from '@ghostfolio/common/helper';
 import { AssetProfileIdentifier, Filter } from '@ghostfolio/common/interfaces';
+import { FxLedgerMode } from '@ghostfolio/common/types';
 
 import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
@@ -53,13 +54,25 @@ export class RedisCacheService {
   }
 
   public getPortfolioSnapshotKey({
+    fxLedgerMode,
     filters,
+    userCurrency,
     userId
   }: {
+    fxLedgerMode?: FxLedgerMode;
     filters?: Filter[];
+    userCurrency?: string;
     userId: string;
   }) {
     let portfolioSnapshotKey = `portfolio-snapshot-${userId}`;
+
+    if (userCurrency) {
+      portfolioSnapshotKey = `${portfolioSnapshotKey}-${userCurrency}`;
+    }
+
+    if (fxLedgerMode) {
+      portfolioSnapshotKey = `${portfolioSnapshotKey}-${fxLedgerMode}`;
+    }
 
     if (filters?.length > 0) {
       const filtersHash = createHash('sha256')

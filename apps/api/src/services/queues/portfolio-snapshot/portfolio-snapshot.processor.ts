@@ -67,6 +67,7 @@ export class PortfolioSnapshotProcessor {
         activities,
         calculationType: job.data.calculationType,
         currency: job.data.userCurrency,
+        fxLedgerMode: job.data.fxLedgerMode,
         filters: job.data.filters,
         userId: job.data.userId
       });
@@ -89,7 +90,9 @@ export class PortfolioSnapshotProcessor {
 
       await this.redisCacheService.set(
         this.redisCacheService.getPortfolioSnapshotKey({
+          fxLedgerMode: job.data.fxLedgerMode,
           filters: job.data.filters,
+          userCurrency: job.data.userCurrency,
           userId: job.data.userId
         }),
         JSON.stringify({

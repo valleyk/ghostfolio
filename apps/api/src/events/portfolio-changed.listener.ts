@@ -3,6 +3,7 @@ import { UserService } from '@ghostfolio/api/app/user/user.service';
 import { ApiService } from '@ghostfolio/api/services/api/api.service';
 import { PortfolioSnapshotService } from '@ghostfolio/api/services/queues/portfolio-snapshot/portfolio-snapshot.service';
 import {
+  DEFAULT_CURRENCY,
   PORTFOLIO_SNAPSHOT_COMPUTATION_QUEUE_PRIORITY_LOW,
   PORTFOLIO_SNAPSHOT_PROCESS_JOB_NAME,
   PORTFOLIO_SNAPSHOT_PROCESS_JOB_OPTIONS
@@ -62,6 +63,11 @@ export class PortfolioChangedListener {
       }
 
       const userSettings = user.settings.settings;
+      const fxLedgerMode = userSettings.fxLedgerMode ?? 'MARKET';
+      const userCurrency =
+        userSettings.reportCurrency ??
+        userSettings.baseCurrency ??
+        DEFAULT_CURRENCY;
 
       const filters = this.apiService.buildFiltersFromUserSettings({
         userSettings
@@ -71,15 +77,18 @@ export class PortfolioChangedListener {
       await this.portfolioSnapshotService.addJobToQueue({
         data: {
           filters,
+          fxLedgerMode,
           userId,
           calculationType: userSettings.performanceCalculationType,
-          userCurrency: userSettings.baseCurrency
+          userCurrency
         },
         name: PORTFOLIO_SNAPSHOT_PROCESS_JOB_NAME,
         opts: {
           ...PORTFOLIO_SNAPSHOT_PROCESS_JOB_OPTIONS,
           jobId: this.redisCacheService.getPortfolioSnapshotKey({
+            fxLedgerMode,
             filters,
+            userCurrency,
             userId
           }),
           priority: PORTFOLIO_SNAPSHOT_COMPUTATION_QUEUE_PRIORITY_LOW

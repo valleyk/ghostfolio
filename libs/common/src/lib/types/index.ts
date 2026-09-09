@@ -8,6 +8,7 @@ import type { BenchmarkTrend } from './benchmark-trend.type';
 import type { ColorScheme } from './color-scheme.type';
 import type { DateRange } from './date-range.type';
 import type { FearAndGreedIndexMode } from './fear-and-greed-index.type';
+import type { FxLedgerMode } from './fx-ledger-mode.type';
 import type { Granularity } from './granularity.type';
 import type { GroupBy } from './group-by.type';
 import type { HoldingType } from './holding-type.type';
@@ -17,6 +18,7 @@ import type { MarketDataPreset } from './market-data-preset.type';
 import type { MarketState } from './market-state.type';
 import type { Market } from './market.type';
 import type { OrderWithAccount } from './order-with-account.type';
+import type { PerformanceDisplayMode } from './performance-display-mode.type';
 import type { ProductCategory } from './product-category.type';
 import type { ProductPlatform } from './product-platform.type';
 import type { PropertyKey } from './property-key.type';
@@ -37,6 +39,7 @@ export type {
   ColorScheme,
   DateRange,
   FearAndGreedIndexMode,
+  FxLedgerMode,
   Granularity,
   GroupBy,
   HoldingType,
@@ -46,6 +49,7 @@ export type {
   MarketDataPreset,
   MarketState,
   OrderWithAccount,
+  PerformanceDisplayMode,
   ProductCategory,
   ProductPlatform,
   PropertyKey,

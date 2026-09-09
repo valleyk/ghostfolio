@@ -68,6 +68,7 @@ import {
   AccountWithBalance,
   AccountWithValue,
   DateRange,
+  FxLedgerMode,
   GroupBy,
   RequestWithUser,
   UserWithSettings
@@ -189,7 +190,7 @@ export class PortfolioService {
       this.userService.user({ id: userId })
     ]);
 
-    const userCurrency = this.getUserCurrency(user);
+    const userCurrency = this.getReportCurrency(user);
 
     return Promise.all(
       accounts.map(async (account) => {
@@ -424,7 +425,8 @@ export class PortfolioService {
   }): Promise<PortfolioInvestmentsResponse> {
     userId = await this.getUserId(impersonationId, userId);
     const user = await this.userService.user({ id: userId });
-    const userCurrency = this.getUserCurrency(user);
+    const userCurrency = this.getReportCurrency(user);
+    const fxLedgerMode = this.getFxLedgerMode(user);
     const savingsRate = (user.settings?.settings as UserSettings)?.savingsRate;
 
     const { endDate, startDate } = getIntervalFromDateRange({ dateRange });
@@ -449,7 +451,8 @@ export class PortfolioService {
       filters,
       userId,
       calculationType: this.getUserPerformanceCalculationType(user),
-      currency: userCurrency
+      currency: userCurrency,
+      fxLedgerMode
     });
 
     const { historicalData } = await portfolioCalculator.getSnapshot();
@@ -509,7 +512,8 @@ export class PortfolioService {
   }): Promise<PortfolioDetails & { hasErrors: boolean }> {
     userId = await this.getUserId(impersonationId, userId);
     const user = await this.userService.user({ id: userId });
-    const userCurrency = this.getUserCurrency(user);
+    const userCurrency = this.getReportCurrency(user);
+    const fxLedgerMode = this.getFxLedgerMode(user);
 
     const emergencyFund = new Big(
       (user.settings?.settings as UserSettings)?.emergencyFund ?? 0
@@ -527,7 +531,8 @@ export class PortfolioService {
       filters,
       userId,
       calculationType: this.getUserPerformanceCalculationType(user),
-      currency: userCurrency
+      currency: userCurrency,
+      fxLedgerMode
     });
 
     const { createdAt, currentValueInBaseCurrency, hasErrors, positions } =
@@ -777,7 +782,8 @@ export class PortfolioService {
   } & AssetProfileIdentifier): Promise<PortfolioHoldingResponse> {
     userId = await this.getUserId(impersonationId, userId);
     const user = await this.userService.user({ id: userId });
-    const userCurrency = this.getUserCurrency(user);
+    const userCurrency = this.getReportCurrency(user);
+    const fxLedgerMode = this.getFxLedgerMode(user);
 
     const { activities } =
       await this.activitiesService.getActivitiesForPortfolioCalculator({
@@ -811,7 +817,8 @@ export class PortfolioService {
       activities,
       userId,
       calculationType: this.getUserPerformanceCalculationType(user),
-      currency: userCurrency
+      currency: userCurrency,
+      fxLedgerMode
     });
 
     const transactionPoints = portfolioCalculator.getTransactionPoints();
@@ -1028,7 +1035,8 @@ export class PortfolioService {
   }): Promise<PortfolioPerformanceResponse> {
     userId = await this.getUserId(impersonationId, userId);
     const user = await this.userService.user({ id: userId });
-    const userCurrency = this.getUserCurrency(user);
+    const userCurrency = this.getReportCurrency(user);
+    const fxLedgerMode = this.getFxLedgerMode(user);
 
     const [accountBalanceItems, { activities }] = await Promise.all([
       this.accountBalanceService.getAccountBalanceItems({
@@ -1067,7 +1075,8 @@ export class PortfolioService {
       filters,
       userId,
       calculationType: this.getUserPerformanceCalculationType(user),
-      currency: userCurrency
+      currency: userCurrency,
+      fxLedgerMode
     });
 
     const { errors, hasErrors, historicalData } =
@@ -2134,6 +2143,24 @@ export class PortfolioService {
   private getUserCurrency(aUser?: UserWithSettings) {
     return (
       aUser?.settings?.settings.baseCurrency ??
+      this.request.user?.settings?.settings.baseCurrency ??
+      DEFAULT_CURRENCY
+    );
+  }
+
+  private getFxLedgerMode(aUser?: UserWithSettings): FxLedgerMode {
+    return (
+      aUser?.settings?.settings.fxLedgerMode ??
+      this.request.user?.settings?.settings.fxLedgerMode ??
+      'MARKET'
+    );
+  }
+
+  private getReportCurrency(aUser?: UserWithSettings) {
+    return (
+      aUser?.settings?.settings.reportCurrency ??
+      aUser?.settings?.settings.baseCurrency ??
+      this.request.user?.settings?.settings.reportCurrency ??
       this.request.user?.settings?.settings.baseCurrency ??
       DEFAULT_CURRENCY
     );

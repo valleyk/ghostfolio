@@ -546,8 +546,7 @@ export class DataService {
   public fetchInfo(): InfoItem {
     const info = cloneDeep((window as any).info);
     const utmSource = window.localStorage.getItem('utm_source') as
-      | 'ios'
-      | 'trusted-web-activity';
+      'ios' | 'trusted-web-activity';
 
     info.globalPermissions = filterGlobalPermissions(
       info.globalPermissions,
@@ -984,8 +983,7 @@ export class DataService {
   public updateInfo() {
     this.http.get<InfoItem>('/api/v1/info').subscribe((info) => {
       const utmSource = window.localStorage.getItem('utm_source') as
-        | 'ios'
-        | 'trusted-web-activity';
+        'ios' | 'trusted-web-activity';
 
       info.globalPermissions = filterGlobalPermissions(
         info.globalPermissions,

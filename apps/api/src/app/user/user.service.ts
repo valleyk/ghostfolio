@@ -165,6 +165,21 @@ export class UserService {
     const baseCurrency =
       (impersonationUserSettings?.settings as UserSettings)?.baseCurrency ??
       (settings.settings as UserSettings)?.baseCurrency;
+    const reportCurrency =
+      (impersonationUserSettings?.settings as UserSettings)?.reportCurrency ??
+      (impersonationUserSettings?.settings as UserSettings)?.baseCurrency ??
+      (settings.settings as UserSettings)?.reportCurrency ??
+      baseCurrency ??
+      DEFAULT_CURRENCY;
+    const fxLedgerMode =
+      (impersonationUserSettings?.settings as UserSettings)?.fxLedgerMode ??
+      (settings.settings as UserSettings)?.fxLedgerMode ??
+      'MARKET';
+    const performanceDisplayMode =
+      (impersonationUserSettings?.settings as UserSettings)
+        ?.performanceDisplayMode ??
+      (settings.settings as UserSettings)?.performanceDisplayMode ??
+      'WITH_CURRENCY_EFFECT';
 
     let referralPartners: ReferralPartner[];
 
@@ -221,7 +236,10 @@ export class UserService {
       settings: {
         ...(settings.settings as UserSettings),
         baseCurrency,
-        locale: (settings.settings as UserSettings)?.locale ?? locale
+        fxLedgerMode,
+        locale: (settings.settings as UserSettings)?.locale ?? locale,
+        performanceDisplayMode,
+        reportCurrency
       }
     };
   }
@@ -352,6 +370,21 @@ export class UserService {
     // Set default value for base currency
     if (!(user.settings.settings as UserSettings)?.baseCurrency) {
       (user.settings.settings as UserSettings).baseCurrency = DEFAULT_CURRENCY;
+    }
+
+    if (!(user.settings.settings as UserSettings)?.reportCurrency) {
+      (user.settings.settings as UserSettings).reportCurrency = (
+        user.settings.settings as UserSettings
+      ).baseCurrency;
+    }
+
+    if (!(user.settings.settings as UserSettings)?.performanceDisplayMode) {
+      (user.settings.settings as UserSettings).performanceDisplayMode =
+        'WITH_CURRENCY_EFFECT';
+    }
+
+    if (!(user.settings.settings as UserSettings)?.fxLedgerMode) {
+      (user.settings.settings as UserSettings).fxLedgerMode = 'MARKET';
     }
 
     // Set default value for date range

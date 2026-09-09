@@ -7,6 +7,7 @@ import {
   PortfolioPerformance,
   ResponseError
 } from '@ghostfolio/common/interfaces';
+import { PerformanceDisplayMode } from '@ghostfolio/common/types';
 import { NotificationService } from '@ghostfolio/ui/notifications';
 import { GfValueComponent } from '@ghostfolio/ui/value';
 
@@ -38,6 +39,9 @@ export class GfPortfolioPerformanceComponent {
   public readonly isLoading = input<boolean>();
   public readonly locale = input<string>(getLocale());
   public readonly performance = input.required<PortfolioPerformance>();
+  public readonly performanceDisplayMode = input<PerformanceDisplayMode>(
+    'WITH_CURRENCY_EFFECT'
+  );
   public readonly precision = input.required<number, number>({
     transform: (value) => {
       return value >= 0 ? value : 2;
@@ -68,16 +72,12 @@ export class GfPortfolioPerformanceComponent {
             separator: getNumberFormatGroup(this.locale())
           }).start();
         } else if (this.showDetails() === false) {
-          new CountUp(
-            'value',
-            this.performance().netPerformancePercentageWithCurrencyEffect * 100,
-            {
-              decimal: getNumberFormatDecimal(this.locale()),
-              decimalPlaces: 2,
-              duration: 1,
-              separator: getNumberFormatGroup(this.locale())
-            }
-          ).start();
+          new CountUp('value', this.netPerformancePercentage() * 100, {
+            decimal: getNumberFormatDecimal(this.locale()),
+            decimalPlaces: 2,
+            duration: 1,
+            separator: getNumberFormatGroup(this.locale())
+          }).start();
         } else {
           this.value().nativeElement.innerHTML = '*****';
         }
@@ -102,5 +102,17 @@ export class GfPortfolioPerformanceComponent {
       message: errorMessageParts.join('<br />'),
       title: $localize`Market data is delayed for`
     });
+  }
+
+  protected netPerformance() {
+    return this.performanceDisplayMode() === 'WITHOUT_CURRENCY_EFFECT'
+      ? this.performance()?.netPerformance
+      : this.performance()?.netPerformanceWithCurrencyEffect;
+  }
+
+  protected netPerformancePercentage() {
+    return this.performanceDisplayMode() === 'WITHOUT_CURRENCY_EFFECT'
+      ? this.performance()?.netPerformancePercentage
+      : this.performance()?.netPerformancePercentageWithCurrencyEffect;
   }
 }

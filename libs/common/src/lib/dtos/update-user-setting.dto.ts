@@ -2,7 +2,9 @@ import { XRayRulesSettings } from '@ghostfolio/common/interfaces';
 import type {
   ColorScheme,
   DateRange,
+  FxLedgerMode,
   HoldingsViewMode,
+  PerformanceDisplayMode,
   ViewMode
 } from '@ghostfolio/common/types';
 import { IsCurrencyCode } from '@ghostfolio/common/validators/is-currency-code';
@@ -80,6 +82,14 @@ export class UpdateUserSettingDto {
   @IsOptional()
   holdingsViewMode?: HoldingsViewMode;
 
+  @IsIn([
+    'MANUAL_AVERAGE_COST',
+    'MANUAL_TRANSACTIONS',
+    'MARKET'
+  ] as FxLedgerMode[])
+  @IsOptional()
+  fxLedgerMode?: FxLedgerMode;
+
   @IsBoolean()
   @IsOptional()
   isExperimentalFeatures?: boolean;
@@ -96,6 +106,17 @@ export class UpdateUserSettingDto {
   @IsOptional()
   locale?: string;
 
+  @IsIn([
+    'WITHOUT_CURRENCY_EFFECT',
+    'WITH_CURRENCY_EFFECT'
+  ] as PerformanceDisplayMode[])
+  @IsOptional()
+  performanceDisplayMode?: PerformanceDisplayMode;
+
+  @IsCurrencyCode()
+  @IsOptional()
+  primaryInvestmentCurrency?: string;
+
   /**
    * The target financial amount the user aims to reach before retiring.
    * Can be explicitly set to null to clear the value and calculate it dynamically.
@@ -111,6 +132,10 @@ export class UpdateUserSettingDto {
   @IsISO8601()
   @IsOptional()
   retirementDate?: string | null;
+
+  @IsCurrencyCode()
+  @IsOptional()
+  reportCurrency?: string;
 
   @IsNumber()
   @IsOptional()

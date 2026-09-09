@@ -15,6 +15,7 @@ import { ConfigurationService } from '@ghostfolio/api/services/configuration/con
 import { ImpersonationService } from '@ghostfolio/api/services/impersonation/impersonation.service';
 import { getIntervalFromDateRange } from '@ghostfolio/common/calculation-helper';
 import {
+  DEFAULT_CURRENCY,
   HEADER_KEY_IMPERSONATION,
   UNKNOWN_KEY
 } from '@ghostfolio/common/config';
@@ -351,7 +352,10 @@ export class PortfolioController {
     const userId = impersonationUserId || this.request.user.id;
 
     const { settings } = await this.userService.user({ id: userId });
-    const userCurrency = settings.settings.baseCurrency;
+    const userCurrency =
+      settings.settings.reportCurrency ??
+      settings.settings.baseCurrency ??
+      DEFAULT_CURRENCY;
 
     const { endDate, startDate } = getIntervalFromDateRange({
       dateRange: range

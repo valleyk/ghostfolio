@@ -1,0 +1,2 @@
+export type FxLedgerMode =
+  'MANUAL_AVERAGE_COST' | 'MANUAL_TRANSACTIONS' | 'MARKET';

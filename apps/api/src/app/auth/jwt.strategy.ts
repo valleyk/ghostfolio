@@ -67,6 +67,20 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
           user.settings.settings.baseCurrency = DEFAULT_CURRENCY;
         }
 
+        if (!user.settings.settings.reportCurrency) {
+          user.settings.settings.reportCurrency =
+            user.settings.settings.baseCurrency;
+        }
+
+        if (!user.settings.settings.performanceDisplayMode) {
+          user.settings.settings.performanceDisplayMode =
+            'WITH_CURRENCY_EFFECT';
+        }
+
+        if (!user.settings.settings.fxLedgerMode) {
+          user.settings.settings.fxLedgerMode = 'MARKET';
+        }
+
         if (!user.settings.settings.language) {
           user.settings.settings.language = DEFAULT_LANGUAGE_CODE;
         }

@@ -90,6 +90,9 @@
           [isLoading]="isLoadingPerformance()"
           [locale]="user()?.settings?.locale"
           [performance]="performance()"
+          [performanceDisplayMode]="
+            user()?.settings?.performanceDisplayMode ?? 'WITH_CURRENCY_EFFECT'
+          "
           [precision]="precision()"
           [showDetails]="showDetails()"
           [unit]="unit()"

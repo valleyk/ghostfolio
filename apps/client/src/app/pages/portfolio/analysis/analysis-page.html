@@ -86,7 +86,7 @@
             [isLoading]="isLoadingInvestmentChart"
             [locale]="user?.settings?.locale"
             [precision]="precision"
-            [unit]="user?.settings?.baseCurrency"
+            [unit]="reportCurrency"
             [value]="performance?.currentValueInBaseCurrency"
             >Total amount</gf-value
           >
@@ -96,34 +96,62 @@
     <div class="col-lg-4 mb-3 mb-lg-0">
       <mat-card appearance="outlined">
         <mat-card-content>
-          <gf-value
-            i18n
-            size="large"
-            [colorizeSign]="true"
-            [isCurrency]="true"
-            [isLoading]="isLoadingInvestmentChart"
-            [locale]="user?.settings?.locale"
-            [precision]="precision"
-            [unit]="user?.settings?.baseCurrency"
-            [value]="performance?.netPerformanceWithCurrencyEffect"
-            >Change with currency effect</gf-value
-          >
+          @if (isPerformanceDisplayWithoutCurrencyEffect) {
+            <gf-value
+              i18n
+              size="large"
+              [colorizeSign]="true"
+              [isCurrency]="true"
+              [isLoading]="isLoadingInvestmentChart"
+              [locale]="user?.settings?.locale"
+              [precision]="precision"
+              [unit]="reportCurrency"
+              [value]="netPerformance"
+              >Change without currency effect</gf-value
+            >
+          } @else {
+            <gf-value
+              i18n
+              size="large"
+              [colorizeSign]="true"
+              [isCurrency]="true"
+              [isLoading]="isLoadingInvestmentChart"
+              [locale]="user?.settings?.locale"
+              [precision]="precision"
+              [unit]="reportCurrency"
+              [value]="netPerformance"
+              >Change with currency effect</gf-value
+            >
+          }
         </mat-card-content>
       </mat-card>
     </div>
     <div class="col-lg-4">
       <mat-card appearance="outlined">
         <mat-card-content>
-          <gf-value
-            i18n
-            size="large"
-            [colorizeSign]="true"
-            [isLoading]="isLoadingInvestmentChart"
-            [isPercent]="true"
-            [locale]="user?.settings?.locale"
-            [value]="performance?.netPerformancePercentageWithCurrencyEffect"
-            >Performance with currency effect</gf-value
-          >
+          @if (isPerformanceDisplayWithoutCurrencyEffect) {
+            <gf-value
+              i18n
+              size="large"
+              [colorizeSign]="true"
+              [isLoading]="isLoadingInvestmentChart"
+              [isPercent]="true"
+              [locale]="user?.settings?.locale"
+              [value]="netPerformancePercentage"
+              >Performance without currency effect</gf-value
+            >
+          } @else {
+            <gf-value
+              i18n
+              size="large"
+              [colorizeSign]="true"
+              [isLoading]="isLoadingInvestmentChart"
+              [isPercent]="true"
+              [locale]="user?.settings?.locale"
+              [value]="netPerformancePercentage"
+              >Performance with currency effect</gf-value
+            >
+          }
         </mat-card-content>
       </mat-card>
     </div>
@@ -166,7 +194,7 @@
                 [isCurrency]="true"
                 [isLoading]="isLoadingInvestmentChart"
                 [locale]="user?.settings?.locale"
-                [unit]="user?.settings?.baseCurrency"
+                [unit]="reportCurrency"
                 [value]="performance?.netPerformance"
               />
             </div>
@@ -203,7 +231,7 @@
                 [isCurrency]="true"
                 [isLoading]="isLoadingInvestmentChart"
                 [locale]="user?.settings?.locale"
-                [unit]="user?.settings?.baseCurrency"
+                [unit]="reportCurrency"
                 [value]="
                   performance?.netPerformance === null
                     ? null
@@ -246,7 +274,7 @@
                 [isCurrency]="true"
                 [isLoading]="isLoadingInvestmentChart"
                 [locale]="user?.settings?.locale"
-                [unit]="user?.settings?.baseCurrency"
+                [unit]="reportCurrency"
                 [value]="performance?.netPerformanceWithCurrencyEffect"
               />
             </div>
@@ -305,7 +333,7 @@
                       [colorizeSign]="true"
                       [isPercent]="true"
                       [locale]="user?.settings?.locale"
-                      [value]="holding.netPerformancePercentWithCurrencyEffect"
+                      [value]="getHoldingPerformancePercent(holding)"
                     />
                   </div>
                 </a>
@@ -356,7 +384,7 @@
                       [colorizeSign]="true"
                       [isPercent]="true"
                       [locale]="user?.settings?.locale"
-                      [value]="holding.netPerformancePercentWithCurrencyEffect"
+                      [value]="getHoldingPerformancePercent(holding)"
                     />
                   </div>
                 </a>
@@ -396,7 +424,7 @@
           class="h-100"
           [benchmarkDataItems]="investments"
           [benchmarkDataLabel]="portfolioEvolutionDataLabel"
-          [currency]="user?.settings?.baseCurrency"
+          [currency]="reportCurrency"
           [historicalDataItems]="performanceDataItems"
           [isInPercentage]="showValuesInPercentage()"
           [isLoading]="isLoadingInvestmentChart"
@@ -452,7 +480,7 @@
           class="h-100"
           [benchmarkDataItems]="investmentsByGroup"
           [benchmarkDataLabel]="investmentTimelineDataLabel"
-          [currency]="user?.settings?.baseCurrency"
+          [currency]="reportCurrency"
           [groupBy]="mode()"
           [isInPercentage]="showValuesInPercentage()"
           [isLoading]="isLoadingInvestmentTimelineChart"
@@ -487,7 +515,7 @@
           class="h-100"
           [benchmarkDataItems]="dividendsByGroup"
           [benchmarkDataLabel]="dividendTimelineDataLabel"
-          [currency]="user?.settings?.baseCurrency"
+          [currency]="reportCurrency"
           [groupBy]="mode()"
           [isInPercentage]="showValuesInPercentage()"
           [isLoading]="isLoadingDividendTimelineChart"

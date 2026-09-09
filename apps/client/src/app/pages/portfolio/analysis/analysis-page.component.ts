@@ -21,7 +21,11 @@ import {
   hasReadRestrictedAccessPermission,
   permissions
 } from '@ghostfolio/common/permissions';
-import type { AiPromptMode, GroupBy } from '@ghostfolio/common/types';
+import type {
+  AiPromptMode,
+  GroupBy,
+  PerformanceDisplayMode
+} from '@ghostfolio/common/types';
 import { translate } from '@ghostfolio/ui/i18n';
 import { GfPremiumIndicatorComponent } from '@ghostfolio/ui/premium-indicator';
 import { DataService } from '@ghostfolio/ui/services';
@@ -128,6 +132,32 @@ export class GfAnalysisPageComponent implements OnInit {
   );
   private readonly snackBar = inject(MatSnackBar);
   private readonly userService = inject(UserService);
+
+  protected get isPerformanceDisplayWithoutCurrencyEffect() {
+    return this.getPerformanceDisplayMode() === 'WITHOUT_CURRENCY_EFFECT';
+  }
+
+  protected get netPerformance() {
+    return this.getPerformanceValue({
+      valueWithoutCurrencyEffect: this.performance?.netPerformance,
+      valueWithCurrencyEffect:
+        this.performance?.netPerformanceWithCurrencyEffect
+    });
+  }
+
+  protected get netPerformancePercentage() {
+    return this.getPerformanceValue({
+      valueWithoutCurrencyEffect: this.performance?.netPerformancePercentage,
+      valueWithCurrencyEffect:
+        this.performance?.netPerformancePercentageWithCurrencyEffect
+    });
+  }
+
+  protected get reportCurrency() {
+    return (
+      this.user?.settings?.reportCurrency ?? this.user?.settings?.baseCurrency
+    );
+  }
 
   public constructor() {
     const { benchmarks } = this.dataService.fetchInfo();
@@ -402,24 +432,18 @@ export class GfAnalysisPageComponent implements OnInit {
           holdings.filter((holding) => {
             return (
               canOpenHoldingDetail(holding) &&
-              isNumber(holding.netPerformancePercentWithCurrencyEffect)
+              isNumber(this.getHoldingPerformancePercent(holding))
             );
           }),
-          'netPerformancePercentWithCurrencyEffect'
+          (holding) => this.getHoldingPerformancePercent(holding)
         ).reverse();
 
         this.top3 = holdingsSorted
-          .filter(
-            ({ netPerformancePercentWithCurrencyEffect }) =>
-              netPerformancePercentWithCurrencyEffect > 0
-          )
+          .filter((holding) => this.getHoldingPerformancePercent(holding) > 0)
           .slice(0, 3);
 
         this.bottom3 = holdingsSorted
-          .filter(
-            ({ netPerformancePercentWithCurrencyEffect }) =>
-              netPerformancePercentWithCurrencyEffect < 0
-          )
+          .filter((holding) => this.getHoldingPerformancePercent(holding) < 0)
           .slice(-3)
           .reverse();
 
@@ -429,6 +453,30 @@ export class GfAnalysisPageComponent implements OnInit {
     this.fetchDividendsAndInvestments();
 
     this.changeDetectorRef.markForCheck();
+  }
+
+  protected getHoldingPerformancePercent(aHolding: PortfolioPosition) {
+    return this.getPerformanceDisplayMode() === 'WITHOUT_CURRENCY_EFFECT'
+      ? aHolding.netPerformancePercent
+      : aHolding.netPerformancePercentWithCurrencyEffect;
+  }
+
+  private getPerformanceDisplayMode(): PerformanceDisplayMode {
+    return (
+      this.user?.settings?.performanceDisplayMode ?? 'WITH_CURRENCY_EFFECT'
+    );
+  }
+
+  private getPerformanceValue({
+    valueWithoutCurrencyEffect,
+    valueWithCurrencyEffect
+  }: {
+    valueWithoutCurrencyEffect?: number;
+    valueWithCurrencyEffect?: number;
+  }) {
+    return this.getPerformanceDisplayMode() === 'WITHOUT_CURRENCY_EFFECT'
+      ? valueWithoutCurrencyEffect
+      : valueWithCurrencyEffect;
   }
 
   private updateBenchmarkDataItems() {

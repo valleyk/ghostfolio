@@ -25,6 +25,56 @@
               </mat-form-field>
             </div>
           </div>
+          <div class="d-flex mb-2">
+            <div class="align-items-center d-flex pt-1 pt-1 w-50">
+              <ng-container i18n>Report Currency</ng-container>
+            </div>
+            <div class="pl-1 w-50">
+              <mat-form-field appearance="outline" class="w-100 without-hint">
+                <mat-select
+                  name="reportCurrency"
+                  [disabled]="!hasPermissionToUpdateUserSettings"
+                  [value]="
+                    user.settings.reportCurrency ?? user.settings.baseCurrency
+                  "
+                  (selectionChange)="
+                    onChangeUserSetting('reportCurrency', $event.value)
+                  "
+                >
+                  @for (currency of currencies; track currency) {
+                    <mat-option [value]="currency">{{ currency }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            </div>
+          </div>
+          <div class="d-flex mb-2">
+            <div class="align-items-center d-flex pt-1 pt-1 w-50">
+              <ng-container i18n>Performance Display</ng-container>
+            </div>
+            <div class="pl-1 w-50">
+              <mat-form-field appearance="outline" class="w-100 without-hint">
+                <mat-select
+                  name="performanceDisplayMode"
+                  [disabled]="!hasPermissionToUpdateUserSettings"
+                  [value]="
+                    user.settings.performanceDisplayMode ??
+                    'WITH_CURRENCY_EFFECT'
+                  "
+                  (selectionChange)="
+                    onChangeUserSetting('performanceDisplayMode', $event.value)
+                  "
+                >
+                  <mat-option i18n value="WITH_CURRENCY_EFFECT"
+                    >With currency effect</mat-option
+                  >
+                  <mat-option i18n value="WITHOUT_CURRENCY_EFFECT"
+                    >Without currency effect</mat-option
+                  >
+                </mat-select>
+              </mat-form-field>
+            </div>
+          </div>
           @if (user?.settings?.isExperimentalFeatures && !user?.subscription) {
             <div class="d-flex mb-2">
               <div class="align-items-center d-flex pt-1 pt-1 w-50">
@@ -184,7 +234,9 @@
                     [isCurrency]="true"
                     [isLoading]="isLoading"
                     [locale]="user.settings.locale"
-                    [unit]="user.settings.baseCurrency"
+                    [unit]="
+                      user.settings.reportCurrency ?? user.settings.baseCurrency
+                    "
                     [value]="previewValue"
                   />
                 </mat-hint>

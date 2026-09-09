@@ -2,7 +2,9 @@ import { XRayRulesSettings } from '@ghostfolio/common/interfaces/x-ray-rules-set
 import {
   ColorScheme,
   DateRange,
+  FxLedgerMode,
   HoldingsViewMode,
+  PerformanceDisplayMode,
   ViewMode
 } from '@ghostfolio/common/types';
 import { PerformanceCalculationType } from '@ghostfolio/common/types/performance-calculation-type.type';
@@ -22,12 +24,16 @@ export interface UserSettings {
   'filters.symbol'?: string;
   'filters.tags'?: string[];
   holdingsViewMode?: HoldingsViewMode;
+  fxLedgerMode?: FxLedgerMode;
   isExperimentalFeatures?: boolean;
   isRestrictedView?: boolean;
   language?: string;
   locale?: string;
   performanceCalculationType?: PerformanceCalculationType;
+  performanceDisplayMode?: PerformanceDisplayMode;
+  primaryInvestmentCurrency?: string;
   projectedTotalAmount?: number;
+  reportCurrency?: string;
   retirementDate?: string;
   safeWithdrawalRate?: number;
   savingsRate?: number;

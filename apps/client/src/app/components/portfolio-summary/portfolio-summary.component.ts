@@ -1,6 +1,7 @@
 import { NUMERICAL_PRECISION_THRESHOLD_6_FIGURES } from '@ghostfolio/common/config';
 import { getDateFnsLocale, getLocale } from '@ghostfolio/common/helper';
 import { PortfolioSummary, User } from '@ghostfolio/common/interfaces';
+import { PerformanceDisplayMode } from '@ghostfolio/common/types';
 import { translate } from '@ghostfolio/ui/i18n';
 import { NotificationService } from '@ghostfolio/ui/notifications';
 import { GfValueComponent } from '@ghostfolio/ui/value';
@@ -123,6 +124,20 @@ export class GfPortfolioSummaryComponent implements OnChanges {
     );
   }
 
+  protected get grossPerformance() {
+    return this.getPerformanceValue({
+      valueWithoutCurrencyEffect: this.summary?.grossPerformance,
+      valueWithCurrencyEffect: this.summary?.grossPerformanceWithCurrencyEffect
+    });
+  }
+
+  protected get netPerformance() {
+    return this.getPerformanceValue({
+      valueWithoutCurrencyEffect: this.summary?.netPerformance,
+      valueWithCurrencyEffect: this.summary?.netPerformanceWithCurrencyEffect
+    });
+  }
+
   public ngOnChanges() {
     if (this.summary) {
       if (
@@ -167,5 +182,23 @@ export class GfPortfolioSummaryComponent implements OnChanges {
 
   protected onToggleHoldings() {
     this.isHoldingsExpanded = !this.isHoldingsExpanded;
+  }
+
+  private getPerformanceDisplayMode(): PerformanceDisplayMode {
+    return (
+      this.user?.settings?.performanceDisplayMode ?? 'WITH_CURRENCY_EFFECT'
+    );
+  }
+
+  private getPerformanceValue({
+    valueWithoutCurrencyEffect,
+    valueWithCurrencyEffect
+  }: {
+    valueWithoutCurrencyEffect?: number;
+    valueWithCurrencyEffect?: number;
+  }) {
+    return this.getPerformanceDisplayMode() === 'WITHOUT_CURRENCY_EFFECT'
+      ? valueWithoutCurrencyEffect
+      : valueWithCurrencyEffect;
   }
 }

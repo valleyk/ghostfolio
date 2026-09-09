@@ -44,8 +44,7 @@ import { environment } from './environments/environment';
   const response = await fetch('/api/v1/info');
   const info: InfoResponse = await response.json();
   const utmSource = window.localStorage.getItem('utm_source') as
-    | 'ios'
-    | 'trusted-web-activity';
+    'ios' | 'trusted-web-activity';
 
   info.globalPermissions = filterGlobalPermissions(
     info.globalPermissions,

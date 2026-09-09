@@ -188,7 +188,13 @@ export class UserController {
       );
     }
 
-    const emitPortfolioChangedEvent = 'baseCurrency' in data;
+    const emitPortfolioChangedEvent = [
+      'baseCurrency',
+      'fxLedgerMode',
+      'reportCurrency'
+    ].some((key) => {
+      return key in data;
+    });
 
     const userSettings: UserSettings = merge(
       {},

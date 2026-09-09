@@ -79,7 +79,9 @@ export class GfHomeOverviewComponent implements OnInit {
 
   protected readonly unit = computed(() => {
     return this.showDetails()
-      ? (this.user()?.settings?.baseCurrency ?? DEFAULT_CURRENCY)
+      ? (this.user()?.settings?.reportCurrency ??
+          this.user()?.settings?.baseCurrency ??
+          DEFAULT_CURRENCY)
       : '%';
   });
 

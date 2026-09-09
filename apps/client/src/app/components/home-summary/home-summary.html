@@ -5,7 +5,9 @@
       <mat-card appearance="outlined">
         <mat-card-content>
           <gf-portfolio-summary
-            [baseCurrency]="user()?.settings?.baseCurrency"
+            [baseCurrency]="
+              user()?.settings?.reportCurrency ?? user()?.settings?.baseCurrency
+            "
             [deviceType]="deviceType()"
             [hasImpersonationId]="hasImpersonationId()"
             [hasPermissionToUpdateUserSettings]="

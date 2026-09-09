@@ -1,4 +1,5 @@
 import { Filter } from '@ghostfolio/common/interfaces';
+import { FxLedgerMode } from '@ghostfolio/common/types';
 
 export const RedisCacheServiceMock = {
   cache: new Map<string, string>(),
@@ -8,15 +9,19 @@ export const RedisCacheServiceMock = {
     return Promise.resolve(value);
   },
   getPortfolioSnapshotKey: ({
+    fxLedgerMode,
     filters,
+    userCurrency,
     userId
   }: {
+    fxLedgerMode?: FxLedgerMode;
     filters?: Filter[];
+    userCurrency?: string;
     userId: string;
   }): string => {
     const filtersHash = filters?.length;
 
-    return `portfolio-snapshot-${userId}${filtersHash > 0 ? `-${filtersHash}` : ''}`;
+    return `portfolio-snapshot-${userId}${userCurrency ? `-${userCurrency}` : ''}${fxLedgerMode ? `-${fxLedgerMode}` : ''}${filtersHash > 0 ? `-${filtersHash}` : ''}`;
   },
   reset: () => {
     RedisCacheServiceMock.cache.clear();
