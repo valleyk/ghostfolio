@@ -37,6 +37,13 @@
         "<node_internals>/**/*.js"
       ],
       "type": "node"
+    },
+    {
+      "name": "Attach ROAI Jest",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "restart": false
     }
   ]
 }
